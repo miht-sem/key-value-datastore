@@ -1,6 +1,6 @@
-# Simple In-Memory Datastore
+# Simple Datastore
 
-A lightweight in-memory datastore, providing basic key-value storage operations with transaction support.
+A lightweight datastore, providing basic key-value storage operations with transaction support.
 
 ## Features
 
