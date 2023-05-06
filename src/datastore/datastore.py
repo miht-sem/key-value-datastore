@@ -1,9 +1,12 @@
+# Builtin
+import queue
 import re
 from typing import Any, List
-
-from core.backends import InMemoryBackend
-from core.enums import DatastoreStatus, DatastoreOperations
-from core.result import Result
+# Internal
+from src.datastore.datastore_result import Result
+from src.datastore.types.datastore_operation import DatastoreOperations
+from src.datastore.types.datastore_status import DatastoreStatus
+from src.services.in_memory_datastore_service import InMemoryBackend
 
 
 class Transaction:
@@ -12,20 +15,20 @@ class Transaction:
     """
 
     def __init__(self):
-        self.operations = []
+        self.operations = queue.Queue()
         self.changes = []
 
     def insert(self, key: str, value: str):
-        self.operations.append((DatastoreOperations.INSERT, key, value))
+        self.operations.put((DatastoreOperations.INSERT, key, value))
 
     def update(self, key: str, value: str):
-        self.operations.append((DatastoreOperations.UPDATE, key, value))
+        self.operations.put((DatastoreOperations.UPDATE, key, value))
 
     def select(self, key: str):
-        self.operations.append((DatastoreOperations.SELECT, key))
+        self.operations.put((DatastoreOperations.SELECT, key))
 
     def delete(self, key: str):
-        self.operations.append((DatastoreOperations.DELETE, key))
+        self.operations.put((DatastoreOperations.DELETE, key))
 
     def add_change(self, change_type: DatastoreOperations, key: str, value=None):
         self.changes.append((change_type, key, value))
@@ -187,8 +190,8 @@ class Datastore:
             return Result(DatastoreStatus.NO_TRANSACTION_IN_PROGRESS, "No transaction in progress")
 
         try:
-            while self.transactions.operations:
-                operation, key, value = self.transactions.operations.pop(0)
+            while not self.transactions.operations.empty():
+                operation, key, value = self.transactions.operations.get()
                 result = Result(DatastoreStatus.ERROR)
                 if operation == operation.INSERT:
                     result = self.insert(key, value, True)

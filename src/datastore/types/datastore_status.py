@@ -1,3 +1,4 @@
+# Builtin
 from enum import Enum, auto
 
 
@@ -9,10 +10,3 @@ class DatastoreStatus(Enum):
     IN_TRANSACTION_LIST = auto()
     NO_TRANSACTION_IN_PROGRESS = auto()
     ERROR = auto()
-
-
-class DatastoreOperations(Enum):
-    INSERT = 'insert'
-    UPDATE = 'update'
-    SELECT = 'select'
-    DELETE = 'delete'

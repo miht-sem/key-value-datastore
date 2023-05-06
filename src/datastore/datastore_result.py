@@ -1,6 +1,7 @@
+# Builtin
 from typing import Any
-
-from core.enums import DatastoreStatus
+# Internal
+from src.datastore.types.datastore_status import DatastoreStatus
 
 
 class Result:
