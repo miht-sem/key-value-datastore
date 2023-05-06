@@ -1,6 +1,6 @@
 # Builtin
-import logging
 import unittest
+
 # Internal
 from src.datastore.datastore import Datastore
 from src.datastore.types.datastore_status import DatastoreStatus
@@ -39,7 +39,7 @@ class TestPrintDatastore(unittest.TestCase):
         result = self.datastore.delete("key1")
         self.assertEqual(result.status, DatastoreStatus.KEY_NOT_FOUND)
 
-    def test_transactions(self):
+    def test_transactions_OK(self):
         result = self.datastore.begin()
         self.assertEqual(result.status, DatastoreStatus.OK)
 
@@ -55,6 +55,8 @@ class TestPrintDatastore(unittest.TestCase):
         result = self.datastore.select("key2")
         self.assertEqual(result.value, "value2")
 
+    def test_transactions_rollback_INSERT(self):
+
         result = self.datastore.begin()
         self.assertEqual(result.status, DatastoreStatus.OK)
 
@@ -64,11 +66,51 @@ class TestPrintDatastore(unittest.TestCase):
         result = self.datastore.update("nonexistent_key", "value")
         self.assertEqual(result.status, DatastoreStatus.IN_TRANSACTION_LIST)
 
-        result = self.datastore.rollback()
-        self.assertEqual(result.status, DatastoreStatus.OK)
+        result = self.datastore.commit()
+        self.assertEqual(result.status, DatastoreStatus.KEY_NOT_FOUND)
 
         result = self.datastore.select("key3")
         self.assertEqual(result.status, DatastoreStatus.KEY_NOT_FOUND)
+
+    def test_transactions_rollback_DELETE(self):
+
+        result = self.datastore.insert("key4", "value1")
+        self.assertEqual(result.status, DatastoreStatus.OK)
+
+        result = self.datastore.begin()
+        self.assertEqual(result.status, DatastoreStatus.OK)
+
+        result = self.datastore.delete("key4")
+        self.assertEqual(result.status, DatastoreStatus.IN_TRANSACTION_LIST)
+
+        result = self.datastore.delete("key234")
+        self.assertEqual(result.status, DatastoreStatus.IN_TRANSACTION_LIST)
+
+        result = self.datastore.commit()
+        self.assertEqual(result.status, DatastoreStatus.ERROR)
+
+        result = self.datastore.select("key4")
+        self.assertEqual(result.value, "value1")
+
+    def test_transactions_rollback_UPDATE(self):
+
+        result = self.datastore.insert("key5", "value1")
+        self.assertEqual(result.status, DatastoreStatus.OK)
+
+        result = self.datastore.begin()
+        self.assertEqual(result.status, DatastoreStatus.OK)
+
+        result = self.datastore.update("key5", "value2")
+        self.assertEqual(result.status, DatastoreStatus.IN_TRANSACTION_LIST)
+
+        result = self.datastore.delete("key234")
+        self.assertEqual(result.status, DatastoreStatus.IN_TRANSACTION_LIST)
+
+        result = self.datastore.commit()
+        self.assertEqual(result.status, DatastoreStatus.ERROR)
+
+        result = self.datastore.select("key5")
+        self.assertEqual(result.value, "value1")
 
     def test_keys_pattern(self):
         self.datastore.insert("key1", "value1")

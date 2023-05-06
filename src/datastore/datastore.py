@@ -1,47 +1,12 @@
 # Builtin
-import queue
 import re
 from typing import Any, List
+
 # Internal
 from src.datastore.datastore_result import Result
-from src.datastore.types.datastore_operation import DatastoreOperations
+from src.datastore.transaction import Transaction
 from src.datastore.types.datastore_status import DatastoreStatus
 from src.services.in_memory_datastore_service import InMemoryBackend
-
-
-class Transaction:
-    """
-    A transaction for the datastore.
-    """
-
-    def __init__(self):
-        self.operations = queue.Queue()
-        self.changes = []
-
-    def insert(self, key: str, value: str):
-        self.operations.put((DatastoreOperations.INSERT, key, value))
-
-    def update(self, key: str, value: str):
-        self.operations.put((DatastoreOperations.UPDATE, key, value))
-
-    def select(self, key: str):
-        self.operations.put((DatastoreOperations.SELECT, key))
-
-    def delete(self, key: str):
-        self.operations.put((DatastoreOperations.DELETE, key))
-
-    def add_change(self, change_type: DatastoreOperations, key: str, value=None):
-        self.changes.append((change_type, key, value))
-
-    def rollback_changes(self, datastore):
-        while self.changes:
-            change_type, key, value = self.changes.pop()
-            if change_type == DatastoreOperations.INSERT:
-                datastore.delete(key, is_transaction=True)
-            elif change_type == DatastoreOperations.UPDATE:
-                datastore.set(key, value, is_transaction=True)
-            elif change_type == DatastoreOperations.DELETE:
-                datastore.set(key, value, is_transaction=True)
 
 
 class Datastore:
@@ -193,9 +158,12 @@ class Datastore:
             while not self.transactions.operations.empty():
                 operation, key, value = self.transactions.operations.get()
                 result = Result(DatastoreStatus.ERROR)
+                previous_value = None
+
                 if operation == operation.INSERT:
                     result = self.insert(key, value, True)
                 elif operation == operation.UPDATE:
+                    previous_value = self.select(key, True).value
                     result = self.update(key, value, True)
                 elif operation == operation.SELECT:
                     result = self.select(key, True)
@@ -206,7 +174,10 @@ class Datastore:
                     self.rollback()
                     return result
                 else:
-                    self.transactions.add_change(operation, key, value)
+                    if operation == operation.UPDATE:
+                        self.transactions.add_change(operation, key, previous_value)
+                    else:
+                        self.transactions.add_change(operation, key, value)
 
         except Exception as e:
             self.rollback()
