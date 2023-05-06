@@ -23,7 +23,7 @@ A lightweight datastore, providing basic key-value storage operations with trans
 Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/simple-in-memory-datastore.git
+git clone https://github.com/miht-sem/key-value-datastore.git
 ```
 
 (Optional) Build the Docker image:
